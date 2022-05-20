@@ -31,6 +31,7 @@ private:
     CompressorRLE compressorRle;
     CompressorHuffman compressorHuf;
 
+    bool IsDir(QString path);
 };
 
 #endif // EXTRACT_WINDOW_H

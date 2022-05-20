@@ -32,6 +32,7 @@ public:
     void setQLineEditToToolBar();
     ~MainWindow();
 
+     bool IsDir(QString path);
 signals:
     void emitText(const QString &text);
 
@@ -52,7 +53,6 @@ private:
     QWidget *spacer;
     QString toolBarTextBeforeChanged;
     void init();
-    QFileInfo currentFile;
 };
 
 #endif // MAINWINDOW_H

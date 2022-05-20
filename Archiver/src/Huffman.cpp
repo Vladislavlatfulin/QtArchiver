@@ -8,7 +8,7 @@ using namespace std;
 
 Node *CompressorHuffman::root = 0;//обнуляем первый узел
 
-struct Compare //структура перегрузки оператора () и сравнения, для сортировки указателей листа
+struct Compare
 {
     bool operator()(const Node* left, const Node* right)
     {
@@ -17,15 +17,15 @@ struct Compare //структура перегрузки оператора () �
 };
 //прочитать все байты из файла
 void CompressorHuffman::readAllBytesFile(QString &fileName, std::vector<char> &info){
-    ifstream file(fileName.toStdString(), ios::binary | ios::ate);//открываем файл
-    if (file.is_open())//если все хорошо и файл открыт
+    ifstream file(fileName.toStdString(), ios::binary | ios::ate);
+    if (file.is_open())
     {
         ifstream::pos_type pos = file.tellg();//устанавливаем текущую позицию
         info.resize(pos);//изменяем размер строки, чтобы она могра содержать pos символов
         file.seekg(0, ios::beg);//ставим на начало
         file.read(&info[0], pos);//читаем весь файл в info[0]
     }
-    else //иначе ошибка открытия файла
+    else
     {
         QMessageBox msgBox(QMessageBox::Warning, "Error", "Unable to open file");
         msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
@@ -68,27 +68,28 @@ void CompressorHuffman::compressHuffman(QString &compressFileName, QString &hufF
         tree.push_back(parent);//добавляем сформированый узел и повторяем опять цикл
     }
     this->root = tree.front();//помещяем последний корень(вершину) в root
-    Print(this->root);//выводим символы в консоль
+    Print(this->root);
 
     buildTable(this->root);//формируем таблицу
     ifstream fileCodes(compressFileName.toStdString());//создаём объект, для чтения и кодировки символа
     ofstream fileCompressed(hufFileName.toStdString(), ios::out | ios::binary);//создаём объект для записи сжатых данных
 
     QStringList pathList = compressFileName.split(".");
-
-    string format = pathList.back().toStdString();
-    for(auto chr: format) {
-        fileCompressed << chr;
-    }
-    fileCompressed << ' ';
+        string format = pathList.back().toStdString();
+        for(auto chr: format) {
+            fileCompressed << chr;
+        }
+        fileCompressed << ' ';
 
     int count = 0;//для подсчёта битов
     char buffer = 0;//для закодированного символа(байта)
     //пока не конец файла заполняю файл - fileCompressed моими кодами из таблицы
-    while(!fileCodes.eof())
+
+    while(fileCodes.good())
     {
-        //получаю символ, который нужно закодировать
+
         char ch = fileCodes.get();
+
         vector<bool> x = table[ch];//записываю вектор данного символа
         for(int i = 0; i < (int)x.size(); i++)//пока не пройдём по коду из таблицы (x.size)
         {
@@ -99,14 +100,12 @@ void CompressorHuffman::compressHuffman(QString &compressFileName, QString &hufF
             if(count == 8)
             {
                 count = 0;//обнуляем, для считывания следующих 8 битов(1 байт)
-                qDebug()<<buffer;
                 fileCompressed << buffer;
                 buffer = 0;
             }
         }
     }
-    qDebug()<<"\n\n\n";
-    //закрываем файлы
+
     fileCodes.close();
     fileCompressed.close();
     info.clear();
@@ -137,29 +136,36 @@ void CompressorHuffman::buildTable(Node *root)
 
 void CompressorHuffman::decompressHuffman(QString &hufFileName, QString &decompressDirName)
 {
-    ifstream file(hufFileName.toStdString(), ios::in | ios::binary);
 
-    QString format = "";
-    int temp = 0;
-    char chr = file.get();
-    while (chr != ' ') {
-         format.insert(temp, chr);
-         temp++;
-         chr = file.get();
+    Node *p = this->root;
+    if(p == NULL) {
+        QMessageBox msgBox(QMessageBox::Warning, "Error", "Failed to unzip file");
+        msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+        msgBox.exec();
+        return;
     }
-    format.insert(0, '.');
+
+    ifstream hufFile(hufFileName.toStdString(), ios::in | ios::binary);
+    QString format = "";
+        char chr;
+        while (hufFile.get(chr) && chr != ' ') {
+             format.append(chr);
+
+        }
+
+    format.prepend('.');
     QString decompressedFileName =  decompressDirName.append(hufFileName.split("/").back().split(".").front().append(format).prepend("/"));
 
     //создаём объекты для чтения и записи
-
     ofstream decompressFile(decompressedFileName.toStdString());
     //узел, в который присваиваем наш корень от которого мы будем идти по дереву
-    Node *p = this->root;
     int count = 0;
     char byte;
     //считываем байт
-    byte = file.get();
-    while(!file.eof())
+    hufFile.read(&byte, sizeof(char));
+
+
+    while(true)
     {
         bool b = byte &(1 << (7 - count));//проверяем биты и получаем 0 или 1(7 - count, т.к. мы проверяем слева направа)
         //проверяем в какуб сторон идти: 1-право, 0-лево
@@ -170,6 +176,7 @@ void CompressorHuffman::decompressHuffman(QString &hufFileName, QString &decompr
         //если дошли до символа, т.е. конца какого-либо уза
         if(p->left == nullptr && p->right == nullptr)
         {
+            //qDebug()<< p ->symbol;
             decompressFile<<p->symbol;//записываем символ в файл
             p = root;
         }
@@ -178,15 +185,15 @@ void CompressorHuffman::decompressHuffman(QString &hufFileName, QString &decompr
         if(count == 8)
         {
             count = 0;
-            byte = file.get();
+            hufFile.read(&byte, sizeof(char));
+            if (hufFile.eof()) break;
         }
     }
 
     //закрываем файлы
-    file.close();
+    hufFile.close();
     decompressFile.close();
 }
-
 
 
 

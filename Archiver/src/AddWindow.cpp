@@ -33,11 +33,11 @@ void Add_window::on_BrowseButton_clicked()
 
 void Add_window::on_AppendButton_clicked()
 {
-    filesToCompress = QFileDialog::getOpenFileNames(this, "ChooseFile(s) to archive",
-                                                    "D:\\","Text Files (*.txt *.cpp *.java)"); //получаем определлённый файл
+    filesToCompress = QFileDialog::getOpenFileNames(0, "ChooseFile(s) to archive",
+                                                    QDir::homePath(),""); //получаем определлённые файлы для архивации
 
-    pathsForQLineEdit = filesToCompress.join(";"); //получаем путь
-    this->ui->AppendLineEdit->setText(pathsForQLineEdit);//и помещаем его в "AppendLineEdit"
+    pathsForQLineEdit = filesToCompress.join(";");
+    this->ui->AppendLineEdit->setText(pathsForQLineEdit);
 }
 
 void Add_window::on_Ok_clicked()
@@ -50,31 +50,31 @@ void Add_window::on_Ok_clicked()
         msgBox.exec();
     }
     //Выбираем сбособ сжатия
-    else
-    {
-        QDir dir(this->ui->BrowseLineEdit->text());
-        if (!dir.exists())
-        {
-          dir.mkdir(".");
-        }
+    else {
 
-        if(this->ui->RLERadioButton->isChecked())
-        {
-            for(auto it:filesToCompress)
-            {
-                QString tempDir = direct;
-                QString rleFileName =  tempDir.append(it.split("/").back().split(".").front().append(".rle").prepend("/"));
-                compressorRle.compressRLE(it, rleFileName);
-            }
-        } else {
-            for(auto it:filesToCompress)
-            {
-                QString tempDir = direct;
-                QString huffmanFileName =  tempDir.append(it.split("/").back().split(".").front().append(".huf").prepend("/"));
-                compressorHuf.compressHuffman(it, huffmanFileName);
+            if(this->ui->RLERadioButton->isChecked()) {
+                for(auto it:filesToCompress) {
+                     QString tempDir = direct;
+                    QString rleFileName =  tempDir.append(it.split("/").back().split(".").front().append(".rle").prepend("/"));
+                    compressorRle.compressRLE(it, rleFileName);
+
+                }
+            } else {
+
+                for(auto it:filesToCompress) {
+                    if (!IsDir(it)) {
+                        QString tempDir = direct;
+                        QString huffmanFileName =  tempDir.append(it.split("/").back().split(".").front().append(".huf").prepend("/"));
+                        compressorHuf.compressHuffman(it, huffmanFileName);
+                    }
+                    else {
+                        QMessageBox msgBox(QMessageBox::Warning, "Error", "This algorithm is under development.\n This algorithm can only compress text files.");
+                        msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+                        msgBox.exec();
+                    }
+                }
             }
         }
-    }
 }
 
 void Add_window::recvText(const QString &text)
@@ -83,4 +83,12 @@ void Add_window::recvText(const QString &text)
     filesToCompress.append(text);
     pathsForQLineEdit = filesToCompress.join(";");
     this->ui->AppendLineEdit->setText(pathsForQLineEdit);
+}
+
+bool Add_window::IsDir(QString path) {
+    if((opendir(path.toStdString().c_str()))) {
+        closedir(opendir(path.toStdString().c_str()));
+        return true;
+    }
+    return false;
 }

@@ -70,8 +70,6 @@ void MainWindow::init()
 
 void MainWindow::on_actionAdd_files_to_archive_triggered()
 {
-    QString path = toolBarLineEdit->text();
-
     QItemSelectionModel *selectionModel = ui->listView->selectionModel();
     QModelIndexList selectedIndexes = selectionModel->selectedIndexes();
     if(selectedIndexes.size() <= 0||
@@ -80,15 +78,9 @@ void MainWindow::on_actionAdd_files_to_archive_triggered()
             toolBarLineEdit->text() == "E:/") {
         m_mapPages.value(ADD_WINDOW)->exec();
     }
-
-    else if(currentFile.isFile())
-    {
+    else {
         m_mapPages.value(ADD_WINDOW)->show();
         emit emitText(toolBarLineEdit->text());
-    } else {
-        QMessageBox msgBox(QMessageBox::Warning, "Warning", "This format cannot be archived!");
-        msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
-        msgBox.exec();
     }
 }
 
@@ -104,7 +96,8 @@ void MainWindow::on_actionExtract_to_triggered()
     if(selectedIndexes.size() <= 0||
             toolBarLineEdit->text() == "C:/"||
             toolBarLineEdit->text() == "D:/" ||
-            toolBarLineEdit->text() == "E:/") {
+            toolBarLineEdit->text() == "E:/" ||
+            toolBarLineEdit->text() == "/") {
         //если мы не заходили не в какую директорию, то путь указываем сами в новом окне
         m_mapPages.value(EXTRACT_WINDOW)->exec();
     } //иначе проверяем правильный ли файл выбран
@@ -123,9 +116,7 @@ void MainWindow::on_actionExtract_to_triggered()
 
 void MainWindow::on_listView_clicked(const QModelIndex &index)
 {
-    QFileInfo fileInfo = model->fileInfo(index);
-    currentFile = fileInfo;
-    toolBarLineEdit->setText(fileInfo.absoluteFilePath());
+    toolBarLineEdit->setText(model->fileInfo(index).absoluteFilePath());
     toolBarTextBeforeChanged = toolBarLineEdit->text();
     qDebug() << toolBarTextBeforeChanged;
 }
@@ -188,19 +179,25 @@ void MainWindow::on_actionDelete_file_triggered()
 
     if(toolBarLineEdit->text() == "" ||
             toolBarLineEdit->text() == "C:/"||
-            toolBarLineEdit->text() == "D:/")
+            toolBarLineEdit->text() == "D:/"
+            || toolBarLineEdit->text() == "/")
         return;
 
-    QFileInfo fileInfo(toolBarLineEdit->text());
-
-    if(fileInfo.isDir())
+    if(IsDir(toolBarLineEdit->text()))
     {
         QDir dir(toolBarLineEdit->text());
         dir.removeRecursively();
     }
-    else if (fileInfo.isFile())
+    else
     {
-        QDir dir(toolBarLineEdit->text());
-        dir.remove(toolBarLineEdit->text());
+        QFile::remove(toolBarLineEdit->text());
     }
+}
+
+bool MainWindow::IsDir(QString path) {
+    if((opendir(path.toStdString().c_str()))) {
+        closedir(opendir(path.toStdString().c_str()));
+        return true;
+    }
+    return false;
 }

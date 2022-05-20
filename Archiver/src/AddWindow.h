@@ -30,6 +30,7 @@ private:
     QString pathsForQLineEdit;
     CompressorRLE compressorRle;
     CompressorHuffman compressorHuf;
+    bool IsDir(QString path);
 };
 
 #endif // ADD_WINDOW_H

@@ -34,9 +34,9 @@ void Extract_window::on_AppendButton_clicked()
 {
     if (this->ui->RLERadioButton->isChecked())
     {
-        filesToDecompress = QFileDialog::getOpenFileNames(this, "ChooseFile(s) to decompress","D:\\"," files (*.rle)");
+        filesToDecompress = QFileDialog::getOpenFileNames(this, "ChooseFile(s) to decompress",QDir::homePath()," files (*.rle)");
     } else {
-        filesToDecompress = QFileDialog::getOpenFileNames(this, "ChooseFile(s) to decompress","D:\\","HUF files (*.huf)");
+        filesToDecompress = QFileDialog::getOpenFileNames(this, "ChooseFile(s) to decompress",QDir::homePath(),"HUF files (*.huf)");
     }
 
     pathsForQLineEdit = filesToDecompress.join(";");
@@ -54,27 +54,29 @@ void Extract_window::on_OK_clicked()
         msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
         msgBox.exec();
     }
-    else
-    {
-        QDir dir(this->ui->BrowseLineEdit->text());
-        if (!dir.exists())
-        {
-          dir.mkdir(".");
-        }
-        if (this->ui->RLERadioButton->isChecked())
-        {
-            for(auto it:filesToDecompress)
-            {
-                QString tempDir = direct;
+    else {
 
-                compressorRle.decompressRLE(it, tempDir);
+        for(auto it: filesToDecompress) {
+
+            if (this->ui->RLERadioButton->isChecked() && it.split(".").back() == "rle") {
+                QString tempDir = direct;
+                QString decompressedDirPath =  tempDir.append(it.split("/").back().split(".").front().prepend("/"));
+                compressorRle.decompressRLE(it, decompressedDirPath);
             }
-        } else {
-            for(auto it:filesToDecompress)
-            {
-                QString tempDir = direct;
-
-                compressorHuf.decompressHuffman(it, tempDir);
+            else if(this->ui->HuffmanRadioButton->isChecked() && it.split(".").back() == "huf") {
+                if (!IsDir(it)) {
+                    compressorHuf.decompressHuffman(it, direct);
+                }
+                else {
+                    QMessageBox msgBox(QMessageBox::Warning, "Error", "This algorithm is under development.\n This algorithm can only compress text files.");
+                    msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+                    msgBox.exec();
+                }
+            }
+            else {
+                QMessageBox msgBox(QMessageBox::Warning, "Error", "Сhoose another type of unzipping");
+                msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+                msgBox.exec();
             }
         }
     }
@@ -87,4 +89,12 @@ void Extract_window::recvText(const QString &text)
     pathsForQLineEdit = filesToDecompress.join(";");
     this->ui->AppendLineEdit->setText(pathsForQLineEdit);
 
+}
+
+bool Extract_window::IsDir(QString path) {
+    if((opendir(path.toStdString().c_str()))) {
+        closedir(opendir(path.toStdString().c_str()));
+        return true;
+    }
+    return false;
 }
